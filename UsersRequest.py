@@ -2,6 +2,7 @@ from Parametrs import *
 from Parser import WeatherParser
 from DrawForecast import DrawForecast
 
+
 class UsersRequest:
     def __init__(self):
         self.parser = WeatherParser()
