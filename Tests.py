@@ -29,16 +29,13 @@ class Test(unittest.TestCase):
         return time[0].isdigit() and time[1].isdigit()
 
     def test_handle_one_word(self):
-        self.users_request.handle_one_word(["evev"])
-        self.assertEqual(self.users_request.answer, UNCLEAR)
-
-        self.users_request.handle_one_word(["help"])
+        self.users_request.handle_help(["help"], 0)
         self.assertEqual(self.users_request.answer, HELP_TEXT)
 
-        self.users_request.handle_one_word(["помощь"])
+        self.users_request.handle_help(["помощь"], 0)
         self.assertEqual(self.users_request.answer, HELP_TEXT)
 
-        self.users_request.handle_one_word(["прогноз"])
+        self.users_request.handle_forecast(["прогноз"], 0)
         self.assertTrue(self.users_request.requesting_picture)
         strings = self.users_request.answer.split('\n')
         self.assertEqual(len(strings), 8)
@@ -47,20 +44,17 @@ class Test(unittest.TestCase):
             self.assertTrue(self.match_forecast(s))
 
     def test_handle_two_words(self):
-        self.users_request.handle_two_words(["kjwebf", "woefn"])
-        self.assertEqual(self.users_request.answer, UNCLEAR)
-
-        self.users_request.handle_two_words(["погода", "сейчас"])
+        self.users_request.handle_current_weather(["погода", "сейчас"], 0)
         self.assertTrue(len(self.users_request.answer) >= 3)
 
-        self.users_request.handle_two_words(["погода", "сегодня"])
+        self.users_request.handle_today_weather(["погода", "сегодня"], 0)
         strings = self.users_request.answer.split('\n')
         self.assertEqual(len(strings), 9)
         for i in range(8):
             s = strings[i]
             self.assertTrue(self.match_current_weather(s))
 
-        self.users_request.handle_two_words(["прогноз", "санкт-петербург"])
+        self.users_request.handle_forecast(["прогноз", "санкт-петербург"], 0)
         self.assertTrue(self.users_request.requesting_picture)
         strings = self.users_request.answer.split('\n')
         self.assertEqual(len(strings), 8)
@@ -69,10 +63,10 @@ class Test(unittest.TestCase):
             self.assertTrue(self.match_forecast(s))
 
     def test_handle_three_words(self):
-        self.users_request.handle_two_words(["погода", "сейчас", "санкт-петербург"])
+        self.users_request.handle_current_weather(["погода", "сейчас", "санкт-петербург"], 0)
         self.assertTrue(len(self.users_request.answer) >= 3)
 
-        self.users_request.handle_two_words(["погода", "сегодня", "санкт-петербург"])
+        self.users_request.handle_today_weather(["погода", "сегодня", "санкт-петербург"], 0)
         strings = self.users_request.answer.split('\n')
         self.assertEqual(len(strings), 9)
         for i in range(8):
@@ -80,7 +74,7 @@ class Test(unittest.TestCase):
             self.assertTrue(self.match_current_weather(s))
 
     def test_get_answer(self):
-        self.users_request.get_answer("    ПрОгНоЗ    ")
+        self.users_request.get_answer("    ПрОгНоЗ    ", 0)
         self.assertTrue(self.users_request.requesting_picture)
         strings = self.users_request.answer.split('\n')
         self.assertEqual(len(strings), 8)
@@ -88,10 +82,10 @@ class Test(unittest.TestCase):
             s = strings[i]
             self.assertTrue(self.match_forecast(s))
 
-        self.users_request.get_answer("    ПогоДа сЕйчас   ")
+        self.users_request.get_answer("    ПогоДа сЕйчас   ", 0)
         self.assertTrue(len(self.users_request.answer) >= 3)
 
-        self.users_request.get_answer("   погоДА СегоднЯ Санкт-петербург     ")
+        self.users_request.get_answer("   погоДА СегоднЯ Санкт-петербург     ", 0)
         strings = self.users_request.answer.split('\n')
         self.assertEqual(len(strings), 9)
         for i in range(8):

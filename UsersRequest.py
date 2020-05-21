@@ -9,81 +9,96 @@ class UsersRequest:
         self.answer = ''
         self.requesting_picture = False
         self.draw_forecast = DrawForecast()
+        self.users_city = dict()
     
-    def get_answer(self, text):
+    def get_answer(self, text, user_id):
         self.answer = ''
         self.requesting_picture = False
-        users_message = text.lower().strip().split()[:3]
+        users_message = text.lower().strip().split()
 
         if len(users_message) == 0:
             self.answer = UNCLEAR
-        elif len(users_message) == 1:
-            self.handle_one_word(users_message)
-        elif len(users_message) == 2:
-            self.handle_two_words(users_message)
-        elif len(users_message) == 3:
-            self.handle_three_words(users_message)
+        elif users_message[0] == 'помощь' or users_message[0] == 'help':
+            self.handle_help(users_message, user_id)
+        elif users_message[0] == 'погода':
+            self.handle_today_weather(users_message, user_id)
+        elif users_message[0] == 'прогноз':
+            self.handle_forecast(users_message, user_id)
+        elif users_message[0] == 'город':
+            self.handle_set_city(users_message, user_id)
+        else:
+            self.answer = UNCLEAR
+
+        self.fix_answer()
 
         return self.answer, self.requesting_picture
 
-    def handle_one_word(self, message):
+    def set_users_city(self, user_id, city):
+        self.users_city[user_id] = city
+
+    def handle_forecast(self, message, user_id):
         self.answer = ''
-        if message[0] == 'help' or message[0] == 'помощь':
-            self.answer = HELP_TEXT
-        elif message[0] == 'прогноз':
-            forecast = self.parser.get_forecast()
+        city = "москва"
+        if len(message) == 1:
+            if user_id in self.users_city:
+                city = self.users_city[user_id]
+        else:
+            city = '-'.join(message[1:])
+        try:
+            forecast = self.parser.get_forecast(city)
             for i in forecast:
                 self.answer += i[0] + ': ' + i[1] + '\n'
-            self.requesting_picture = True
-            self.draw_forecast.draw(forecast)
-        else:
-            self.answer = UNCLEAR
+            if len(self.answer) > 0:
+                self.requesting_picture = True
+                self.draw_forecast.draw(forecast)
+        except IndexError:
+            self.fix_answer()
 
-    def handle_two_words(self, message):
+    def handle_current_weather(self, message, user_id):
         self.answer = ''
-        if message[0] == 'погода':
-            if message[1] == 'сейчас':
-                self.answer = self.parser.get_current_temperature()
-            elif message[1] == 'сегодня':
-                for i in self.parser.get_today_temperature():
-                    self.answer += i[0] + ': ' + i[1] + '\n'
+        city = "москва"
+        if len(message) == 1:
+            if user_id in self.users_city:
+                city = self.users_city[user_id]
+        elif message[1] == 'сейчас':
+            if len(message) > 2:
+                city = '-'.join(message[2:])
             else:
-                self.answer = UNCLEAR
-        elif message[0] == 'прогноз':
-            city = message[1]
-            try:
-                forecast = self.parser.get_forecast(city)
-                for i in forecast:
-                    self.answer += i[0] + ': ' + i[1] + '\n'
-                if len(self.answer) > 0:
-                    self.requesting_picture = True
-                    self.draw_forecast.draw(forecast)
-            except IndexError:
-                self.fix_answer()
+                if user_id in self.users_city:
+                    city = self.users_city[user_id]
         else:
-            self.answer = UNCLEAR
+            city = '-'.join(message[1:])
 
-        self.fix_answer()
+        try:
+            self.answer = self.parser.get_current_temperature(city)
+        except IndexError:
+            self.fix_answer()
 
-    def handle_three_words(self, message):
+    def handle_today_weather(self, message, user_id):
         self.answer = ''
-        if message[:2] == ['погода', 'сейчас']:
-            city = message[2]
-            try:
-                self.answer = self.parser.get_current_temperature(city)
-            except IndexError:
-                self.fix_answer()
-        elif message[:2] == ['погода', 'сегодня']:
-            city = message[2]
-            try:
-                for i in self.parser.get_today_temperature(city):
-                    self.answer += i[0] + ': ' + i[1] + '\n'
-            except IndexError:
-                self.fix_answer()
-        else:
-            self.answer = UNCLEAR
+        city = "москва"
+        if len(message) == 1 or message[1] != 'сегодня':
+            self.handle_current_weather(message, user_id)
+            return
+        elif message[1] == 'сегодня':
+            if len(message) > 2:
+                city = '-'.join(message[2:])
+            else:
+                if user_id in self.users_city:
+                    city = self.users_city[user_id]
+        try:
+            for i in self.parser.get_today_temperature(city):
+                self.answer += i[0] + ': ' + i[1] + '\n'
+        except IndexError:
+            self.fix_answer()
 
-        self.fix_answer()
+    def handle_set_city(self, message, user_id):
+        self.set_users_city(user_id, '-'.join(message[1:]))
+        self.requesting_picture = False
+        self.answer = CITY_SET
+
+    def handle_help(self, message, user_id):
+        self.answer = HELP_TEXT
 
     def fix_answer(self):
         if self.answer == '':

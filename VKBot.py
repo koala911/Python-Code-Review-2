@@ -18,7 +18,7 @@ class VKBot:
         for event in self.longpoll.listen():
             if event.type == VkEventType.MESSAGE_NEW:
                 if event.to_me:
-                    bot_message, requesting_picture = self.users_request.get_answer(event.text)
+                    bot_message, requesting_picture = self.users_request.get_answer(event.text, event.user_id)
 
                     if requesting_picture:
                         self.write_message_with_picture(event.user_id, bot_message)
